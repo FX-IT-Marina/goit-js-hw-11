@@ -182,6 +182,7 @@ const fetchNewImage = async (searchValue, currentPage) => {
 btnLoadMore.addEventListener('click', async () => {
   const searchValue = localStorage.getItem('search-term');
   currentPage++;
+
   let params = new URLSearchParams({
     key: PIXABAY_KEY,
     q: searchValue,
@@ -189,32 +190,73 @@ btnLoadMore.addEventListener('click', async () => {
     orientation: 'horizontal',
     safesearch: true,
     per_page: PER_PAGE,
+    page: currentPage, // Обновлено: добавляем параметр page
   });
   lightbox.refresh();
 
   try {
-    const response = await axios.get(
-      `${PIXABAY_URL}?${params}&page=${currentPage}`
-    );
+    const response = await axios.get(`${PIXABAY_URL}?${params}`);
 
-    const imagesPerPage = PER_PAGE;
+    const arrayImages = response.data.hits;
+
+    if (arrayImages.length === 0) {
+      Notiflix.Notify.failure(
+        'Sorry, there are no images matching your search query. Please try again.'
+      );
+      return;
+    }
+
+    const galleryMarkup = arrayImages
+      .map(image => {
+        return `
+          <div class ="cards"> 
+            <div class="photo"></div>
+            <a href="${image.largeImageURL}" class="l"lightbox">   
+              <img class="image" src="${image.webformatURL}" alt="${image.tags}" loading="lazy" />
+            </a>
+            <div class="info">
+              <p class="info-item">
+                <b>Likes</b>
+                ${image.likes}
+              </p>
+              <p class="info-item">
+                <b>Views</b>
+                ${image.views}
+              </p>
+              <p class="info-item">
+                <b>Comments</b>
+                ${image.comments}
+              </p>
+              <p class="info-item">
+                <b>Downloads</b>
+                ${image.downloads}
+              </p>
+            </div>
+          </div>`;
+      })
+      .join('');
+
+    gallery.insertAdjacentHTML('beforeend', galleryMarkup);
+    lightbox.refresh();
+
+    const { height: cardHeight } = document
+      .querySelector('.gallery')
+      .lastElementChild.getBoundingClientRect();
+    window.scrollBy({
+      top: cardHeight * 2,
+      behavior: 'smooth',
+    });
 
     const totalImages = response.data.totalHits;
-    const maxPageNumber = totalImages / imagesPerPage;
-    const maxPageNumberRound = Math.ceil(maxPageNumber);
-    console.log('currentPage: ', currentPage);
-    console.log('maxPageNumber: ', maxPageNumber);
-    console.log('maxPageNumberRound: ', maxPageNumberRound);
+    const maxPageNumber = Math.ceil(totalImages / PER_PAGE);
 
-    if (currentPage === maxPageNumberRound) {
+    if (currentPage >= maxPageNumber) {
       footerSection.style.display = 'none';
       btnLoadMore.style.display = 'none';
       Notiflix.Notify.info(
         "We're sorry, but you've reached the end of search results."
       );
     }
-
-    fetchNewImage(searchValue, currentPage);
   } catch (error) {
     console.error(error);
   }
