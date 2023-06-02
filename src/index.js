@@ -98,7 +98,7 @@ const fetchImages = async (searchValue, currentPage) => {
       })
       .join('');
 
-    gallery.innerHTML = galleryMarkup;
+    gallery.insertAdjacentHTML('beforeend', galleryMarkup);
     lightbox.refresh();
 
     Notiflix.Notify.success(`Hooray! We found ${totalHits} images.`);
@@ -214,7 +214,7 @@ btnLoadMore.addEventListener('click', async () => {
       );
     }
 
-    fetchImages(searchValue, currentPage);
+    fetchNewImage(searchValue, currentPage);
   } catch (error) {
     console.error(error);
   }
